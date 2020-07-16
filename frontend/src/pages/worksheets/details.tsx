@@ -8,7 +8,13 @@ enum Keys {
   ESC = 27
 }
 
+const ROW_INDEX_PATTERN = /[0-9]+/;
+const CELL_INDEX_PATTERN = /[A-Z]+/;
+const CELL_REFERENCE_PATTERN = /^[A-Z]+[0-9]+$/;
+
 const clone = (items: any) => items.map((item: any) => Array.isArray(item) ? clone(item) : item);
+// We could add some memoization here I guess
+const isLikeFormula = (value: any): value is string => typeof value === 'string' && value.startsWith('=');
 
 type WorksheetState = {
   contents: (string | number)[][];
@@ -113,6 +119,36 @@ export const Details = () => {
   const columns = Array.from({ length: columnsCount });
   const rowsCount = worksheetContents.length;
   const rows = Array.from({ length: rowsCount });
+  const displayValue = (rowIndex: number, columnIndex: number, value: CellValue) => {
+    try {
+      if (isLikeFormula(value)) {
+        // Simplified approach to support addition only
+        return value.replace('=', '').split('+').reduce((sum: number, currentCell: string) => {
+          let cellValue: number;
+
+          if (currentCell.match(CELL_REFERENCE_PATTERN)) {
+            const cellColumnIndex = currentCell.match(CELL_INDEX_PATTERN)![0].charCodeAt(0) - Keys.A;
+            const cellRowIndex = parseInt(currentCell.match(ROW_INDEX_PATTERN)![0]) - 1;
+            const result = worksheetContents[cellRowIndex][cellColumnIndex];
+
+            if (cellColumnIndex === columnIndex && cellRowIndex === rowIndex) {
+              throw Error('Cannot reference itself');
+            }
+
+            cellValue = isLikeFormula(result) ? displayValue(cellRowIndex, cellColumnIndex, result) : result;
+          } else {
+            cellValue = parseInt(currentCell);
+          }
+
+          return sum + cellValue;
+        }, 0)
+      }
+    } catch (error) {
+      return '#REF!';
+    }
+
+    return value;
+  }
   const handleChange = React.useCallback((rowIndex: number, columnIndex: number, value: CellValue) => {
     dispatch({ type: 'update', payload: { rowIndex, columnIndex, value } });
   }, [dispatch]);
@@ -146,7 +182,7 @@ export const Details = () => {
                 columnIndex={columnIndex}
                 rowIndex={rowIndex}
                 value={value}
-                displayValue={value}
+                displayValue={displayValue(rowIndex, columnIndex, value)}
                 onChange={handleChange}
               />
             );

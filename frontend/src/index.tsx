@@ -1,9 +1,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 
+import { Details } from './pages/worksheets/details';
+
 ReactDOM.render(
   <React.StrictMode>
-    <div>Empty app</div>
+    <Details />
   </React.StrictMode>,
   document.getElementById('root')
 );

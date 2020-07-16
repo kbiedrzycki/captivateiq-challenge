@@ -44,16 +44,17 @@ const displayValue = (rowIndex: number, columnIndex: number, worksheetContents: 
         }
 
         return sum + cellValue;
-      }, 0)
+      }, 0);
     }
   } catch (error) {
     return '#REF!';
   }
 
   return value;
-}
+};
 
 type WorksheetState = {
+  name: string;
   contents: (string | number)[][];
 };
 
@@ -67,7 +68,7 @@ type CellProps = {
   onChange: (rowIndex: number, cellIndex: number, value: CellValue) => any
 }
 
-const Cell = ({ rowIndex, columnIndex, value, displayValue, onChange }: CellProps) => {
+const Cell = React.memo(({ rowIndex, columnIndex, value, displayValue, onChange }: CellProps) => {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [editing, setEditing] = React.useState(false);
   const [active, setActive] = React.useState(false);
@@ -80,6 +81,10 @@ const Cell = ({ rowIndex, columnIndex, value, displayValue, onChange }: CellProp
     let cellValue = isLikeFormula(value) ? value : parseFloat(value);
 
     if (typeof cellValue === 'number' && isNaN(cellValue)) {
+      cellValue = value;
+    }
+
+    if (!isNaN(parseFloat(cellValue as string)) && isFinite(cellValue as number)) {
       cellValue = value;
     }
 
@@ -123,11 +128,10 @@ const Cell = ({ rowIndex, columnIndex, value, displayValue, onChange }: CellProp
       </OutsideClickHandler>
     </td>
   );
-};
-
-const MemoCell = React.memo(Cell);
+});
 
 const initialWorksheetState: WorksheetState = {
+  name: 'Test',
   contents: [
     [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
     [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
@@ -159,7 +163,7 @@ function worksheetReducer(
 
 export const Details = () => {
   const [worksheetState, dispatch] = React.useReducer(worksheetReducer, initialWorksheetState);
-  const { contents: worksheetContents } = worksheetState;
+  const { name, contents: worksheetContents } = worksheetState;
   const columnsCount = worksheetContents[0].length;
   const columns = Array.from({ length: columnsCount });
   const rowsCount = worksheetContents.length;
@@ -169,42 +173,51 @@ export const Details = () => {
   }, [dispatch]);
 
   return (
-    <table className="table worksheet">
-      <thead>
-      <tr>
-        <th style={{ width: 40 }} />
-        {columns.map((_, columnIndex) => (
-          <th
-            scope="col"
-            key={`heading-${columnIndex}`}
-            className="text-center"
-          >
-            {String.fromCharCode(Keys.A + columnIndex)}
-          </th>
-        ))}
-      </tr>
-      </thead>
-      <tbody>
-      {rows.map((_, rowIndex) => (
-        <tr key={`row-${rowIndex}`}>
-          <th scope="row" className="text-left">{rowIndex + 1}</th>
-          {columns.map((_, columnIndex) => {
-            const value = worksheetContents[rowIndex][columnIndex];
+    <>
+      <div className="row">
+        <div className="col">
+          <h3>Worksheet: {name}</h3>
+        </div>
+      </div>
+      <div className="row">
+        <table className="table worksheet">
+          <thead>
+          <tr>
+            <th style={{ width: 40 }} />
+            {columns.map((_, columnIndex) => (
+              <th
+                scope="col"
+                key={`heading-${columnIndex}`}
+                className="text-center"
+              >
+                {String.fromCharCode(Keys.A + columnIndex)}
+              </th>
+            ))}
+          </tr>
+          </thead>
+          <tbody>
+          {rows.map((_, rowIndex) => (
+            <tr key={`row-${rowIndex}`}>
+              <th scope="row" className="text-left">{rowIndex + 1}</th>
+              {columns.map((_, columnIndex) => {
+                const value = worksheetContents[rowIndex][columnIndex];
 
-            return (
-              <MemoCell
-                key={`cell-${rowIndex}-${columnIndex}`}
-                columnIndex={columnIndex}
-                rowIndex={rowIndex}
-                value={value}
-                displayValue={displayValue(rowIndex, columnIndex, worksheetContents)}
-                onChange={handleChange}
-              />
-            );
-          })}
-        </tr>
-      ))}
-      </tbody>
-    </table>
+                return (
+                  <Cell
+                    key={`cell-${rowIndex}-${columnIndex}`}
+                    columnIndex={columnIndex}
+                    rowIndex={rowIndex}
+                    value={value}
+                    displayValue={displayValue(rowIndex, columnIndex, worksheetContents)}
+                    onChange={handleChange}
+                  />
+                );
+              })}
+            </tr>
+          ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 };

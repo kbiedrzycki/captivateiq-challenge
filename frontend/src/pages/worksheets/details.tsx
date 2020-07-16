@@ -84,10 +84,6 @@ const Cell = React.memo(({ rowIndex, columnIndex, value, displayValue, onChange 
       cellValue = value;
     }
 
-    if (!isNaN(parseFloat(cellValue as string)) && isFinite(cellValue as number)) {
-      cellValue = value;
-    }
-
     onChange(rowIndex, columnIndex, cellValue);
     quitEditing();
   };

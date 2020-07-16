@@ -13,12 +13,50 @@ const CELL_INDEX_PATTERN = /[A-Z]+/;
 const CELL_REFERENCE_PATTERN = /^[A-Z]+[0-9]+$/;
 
 const clone = (items: any) => items.map((item: any) => Array.isArray(item) ? clone(item) : item);
+
 // We could add some memoization here I guess
-const isLikeFormula = (value: any): value is string => typeof value === 'string' && value.startsWith('=');
+const isLikeFormula = (value: CellValue): value is string => typeof value === 'string' && value.startsWith('=');
+const displayValue = (rowIndex: number, columnIndex: number, worksheetContents: CellValue[][]): CellValue => {
+  const value = worksheetContents[rowIndex][columnIndex];
+
+  try {
+    if (isLikeFormula(value)) {
+      // Simplified approach to support addition only
+      return value.replace('=', '').split('+').reduce((sum: number, currentCell: string) => {
+        let cellValue: number | string;
+
+        if (currentCell.match(CELL_REFERENCE_PATTERN)) {
+          const cellColumnIndex = currentCell.match(CELL_INDEX_PATTERN)![0].charCodeAt(0) - Keys.A;
+          const cellRowIndex = parseInt(currentCell.match(ROW_INDEX_PATTERN)![0]) - 1;
+          const result = worksheetContents[cellRowIndex][cellColumnIndex];
+
+          if (cellColumnIndex === columnIndex && cellRowIndex === rowIndex) {
+            throw Error('Cannot reference itself');
+          }
+
+          cellValue = isLikeFormula(result) ? displayValue(cellRowIndex, cellColumnIndex, worksheetContents) : result;
+        } else {
+          cellValue = parseFloat(currentCell);
+        }
+
+        if (typeof cellValue !== 'number' || isNaN(cellValue)) {
+          throw Error('Not a number');
+        }
+
+        return sum + cellValue;
+      }, 0)
+    }
+  } catch (error) {
+    return '#REF!';
+  }
+
+  return value;
+}
 
 type WorksheetState = {
   contents: (string | number)[][];
 };
+
 type CellValue = string | number;
 
 type CellProps = {
@@ -38,7 +76,10 @@ const Cell = ({ rowIndex, columnIndex, value, displayValue, onChange }: CellProp
     setActive(false);
   };
   const handleChange = (event: React.FocusEvent<HTMLInputElement>) => {
-    onChange(rowIndex, columnIndex, event.target.value);
+    const { value } = event.target;
+    const cellValue = isLikeFormula(value) ? value : parseFloat(value);
+
+    onChange(rowIndex, columnIndex, cellValue);
     quitEditing();
   };
   const handleKeyUp = ({ keyCode }: React.KeyboardEvent<HTMLInputElement>) => {
@@ -119,36 +160,6 @@ export const Details = () => {
   const columns = Array.from({ length: columnsCount });
   const rowsCount = worksheetContents.length;
   const rows = Array.from({ length: rowsCount });
-  const displayValue = (rowIndex: number, columnIndex: number, value: CellValue) => {
-    try {
-      if (isLikeFormula(value)) {
-        // Simplified approach to support addition only
-        return value.replace('=', '').split('+').reduce((sum: number, currentCell: string) => {
-          let cellValue: number;
-
-          if (currentCell.match(CELL_REFERENCE_PATTERN)) {
-            const cellColumnIndex = currentCell.match(CELL_INDEX_PATTERN)![0].charCodeAt(0) - Keys.A;
-            const cellRowIndex = parseInt(currentCell.match(ROW_INDEX_PATTERN)![0]) - 1;
-            const result = worksheetContents[cellRowIndex][cellColumnIndex];
-
-            if (cellColumnIndex === columnIndex && cellRowIndex === rowIndex) {
-              throw Error('Cannot reference itself');
-            }
-
-            cellValue = isLikeFormula(result) ? displayValue(cellRowIndex, cellColumnIndex, result) : result;
-          } else {
-            cellValue = parseInt(currentCell);
-          }
-
-          return sum + cellValue;
-        }, 0)
-      }
-    } catch (error) {
-      return '#REF!';
-    }
-
-    return value;
-  }
   const handleChange = React.useCallback((rowIndex: number, columnIndex: number, value: CellValue) => {
     dispatch({ type: 'update', payload: { rowIndex, columnIndex, value } });
   }, [dispatch]);
@@ -182,7 +193,7 @@ export const Details = () => {
                 columnIndex={columnIndex}
                 rowIndex={rowIndex}
                 value={value}
-                displayValue={displayValue(rowIndex, columnIndex, value)}
+                displayValue={displayValue(rowIndex, columnIndex, worksheetContents)}
                 onChange={handleChange}
               />
             );

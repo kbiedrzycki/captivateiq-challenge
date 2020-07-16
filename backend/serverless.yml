@@ -1,0 +1,33 @@
+service: captivateiq
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  stage: dev
+  region: eu-west-1
+
+functions:
+  listWorksheets:
+    handler: api/worksheet.list
+    events:
+      - http:
+          path: worksheets
+          method: get
+    getWorksheet:
+      handler: api/worksheet.get
+      events:
+        - http:
+            path: worksheets/{id}
+            method: get
+  createWorksheet:
+    handler: api/worksheet.create
+    events:
+      - http:
+          path: worksheets
+          method: post
+  updateWorksheet:
+    handler: api/worksheet.update
+    events:
+      - http:
+          path: worksheets/{id}
+          method: put

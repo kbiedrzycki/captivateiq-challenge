@@ -77,7 +77,11 @@ const Cell = ({ rowIndex, columnIndex, value, displayValue, onChange }: CellProp
   };
   const handleChange = (event: React.FocusEvent<HTMLInputElement>) => {
     const { value } = event.target;
-    const cellValue = isLikeFormula(value) ? value : parseFloat(value);
+    let cellValue = isLikeFormula(value) ? value : parseFloat(value);
+
+    if (typeof cellValue === 'number' && isNaN(cellValue)) {
+      cellValue = value;
+    }
 
     onChange(rowIndex, columnIndex, cellValue);
     quitEditing();

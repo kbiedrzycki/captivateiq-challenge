@@ -5,12 +5,20 @@
 .worksheet th,
 .worksheet td {
   padding: 0 4px;
+  border-bottom: 1px solid #dee2e6;
 }
 
 .worksheet td {
   max-width: 150px;
   text-align: right;
   overflow: hidden;
+  vertical-align: middle;
+  border: 1px solid #dee2e6;
+}
+
+.worksheet td.active {
+  outline: 2px solid blue;
+  outline-offset: -1px;
 }
 
 .worksheet input {

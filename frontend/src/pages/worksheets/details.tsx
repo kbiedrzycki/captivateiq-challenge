@@ -1,5 +1,12 @@
 import React from 'react';
+import OutsideClickHandler from 'react-outside-click-handler';
 import './details.css';
+
+enum Keys {
+  A = 65,
+  ENTER = 13,
+  ESC = 27
+}
 
 const clone = (items: any) => items.map((item: any) => Array.isArray(item) ? clone(item) : item);
 
@@ -19,18 +26,34 @@ type CellProps = {
 const Cell = ({ rowIndex, columnIndex, value, displayValue, onChange }: CellProps) => {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [editing, setEditing] = React.useState(false);
+  const [active, setActive] = React.useState(false);
+  const quitEditing = () => {
+    setEditing(false);
+    setActive(false);
+  };
   const handleChange = (event: React.FocusEvent<HTMLInputElement>) => {
     onChange(rowIndex, columnIndex, event.target.value);
-    setEditing(false);
+    quitEditing();
   };
+  const handleKeyUp = ({ keyCode }: React.KeyboardEvent<HTMLInputElement>) => {
+    if (keyCode === Keys.ENTER && inputRef.current) {
+      inputRef.current.blur();
+    }
+
+    if (keyCode === Keys.ESC) {
+      quitEditing();
+    }
+  };
+
   const cellMarkup = editing ? (
     <input
       ref={inputRef}
       type="text"
       defaultValue={value}
       onBlur={handleChange}
+      onKeyUp={handleKeyUp}
     />
-  ) : <div>{displayValue}</div>;
+  ) : displayValue;
 
   React.useEffect(() => {
     if (editing) {
@@ -38,7 +61,17 @@ const Cell = ({ rowIndex, columnIndex, value, displayValue, onChange }: CellProp
     }
   }, [editing]);
 
-  return <td onDoubleClick={() => setEditing(true)}>{cellMarkup}</td>;
+  return (
+    <td
+      className={`${active ? 'active' : ''}`}
+      onClick={() => setActive(true)}
+      onDoubleClick={() => setEditing(true)}
+    >
+      <OutsideClickHandler onOutsideClick={() => setActive(false)} disabled={!active}>
+        {cellMarkup}
+      </OutsideClickHandler>
+    </td>
+  );
 };
 
 const MemoCell = React.memo(Cell);
@@ -85,7 +118,7 @@ export const Details = () => {
   }, [dispatch]);
 
   return (
-    <table className="table table-bordered worksheet">
+    <table className="table worksheet">
       <thead>
       <tr>
         <th style={{ width: 40 }} />
@@ -95,7 +128,7 @@ export const Details = () => {
             key={`heading-${columnIndex}`}
             className="text-center"
           >
-            {String.fromCharCode(65 + columnIndex)}
+            {String.fromCharCode(Keys.A + columnIndex)}
           </th>
         ))}
       </tr>

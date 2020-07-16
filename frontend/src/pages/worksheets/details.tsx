@@ -1,4 +1,5 @@
 import React from 'react';
+import './details.css';
 
 const clone = (items: any) => items.map((item: any) => Array.isArray(item) ? clone(item) : item);
 
@@ -16,24 +17,28 @@ type CellProps = {
 }
 
 const Cell = ({ rowIndex, columnIndex, value, displayValue, onChange }: CellProps) => {
+  const inputRef = React.useRef<HTMLInputElement>(null);
   const [editing, setEditing] = React.useState(false);
   const handleChange = (event: React.FocusEvent<HTMLInputElement>) => {
     onChange(rowIndex, columnIndex, event.target.value);
     setEditing(false);
   };
+  const cellMarkup = editing ? (
+    <input
+      ref={inputRef}
+      type="text"
+      defaultValue={value}
+      onBlur={handleChange}
+    />
+  ) : <div>{displayValue}</div>;
 
-  if (editing) {
-    return (
-      <input
-        type="text"
-        className="form-control"
-        defaultValue={value}
-        onBlur={handleChange}
-      />
-    );
-  }
+  React.useEffect(() => {
+    if (editing) {
+      inputRef.current?.focus();
+    }
+  }, [editing]);
 
-  return <span onDoubleClick={() => setEditing(true)}>{displayValue}</span>;
+  return <td onDoubleClick={() => setEditing(true)}>{cellMarkup}</td>;
 };
 
 const MemoCell = React.memo(Cell);
@@ -65,8 +70,6 @@ function worksheetReducer(
       contentsCopy[rowIndex][columnIndex] = value;
 
       return { ...state, contents: contentsCopy };
-    default:
-      throw new Error();
   }
 }
 
@@ -82,32 +85,37 @@ export const Details = () => {
   }, [dispatch]);
 
   return (
-    <table className="table table-bordered">
+    <table className="table table-bordered worksheet">
       <thead>
       <tr>
-        <th />
+        <th style={{ width: 40 }} />
         {columns.map((_, columnIndex) => (
-          <th scope="col" key={`heading-${columnIndex}`} className="text-center">{String.fromCharCode(65 + columnIndex)}</th>
+          <th
+            scope="col"
+            key={`heading-${columnIndex}`}
+            className="text-center"
+          >
+            {String.fromCharCode(65 + columnIndex)}
+          </th>
         ))}
       </tr>
       </thead>
       <tbody>
       {rows.map((_, rowIndex) => (
         <tr key={`row-${rowIndex}`}>
-          <th scope="row" className="text-center">{rowIndex + 1}</th>
+          <th scope="row" className="text-left">{rowIndex + 1}</th>
           {columns.map((_, columnIndex) => {
             const value = worksheetContents[rowIndex][columnIndex];
 
             return (
-              <td key={`cell-${rowIndex}-${columnIndex}`} className="text-center" style={{ width: 200 }}>
-                <MemoCell
-                  columnIndex={columnIndex}
-                  rowIndex={rowIndex}
-                  value={value}
-                  displayValue={value}
-                  onChange={handleChange}
-                />
-              </td>
+              <MemoCell
+                key={`cell-${rowIndex}-${columnIndex}`}
+                columnIndex={columnIndex}
+                rowIndex={rowIndex}
+                value={value}
+                displayValue={value}
+                onChange={handleChange}
+              />
             );
           })}
         </tr>

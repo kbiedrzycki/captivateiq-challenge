@@ -1,8 +1,10 @@
 'use strict';
 
 const AWS = require('aws-sdk');
+const uuid = require('uuid');
 
 const dynamoDb = new AWS.DynamoDB.DocumentClient();
+const { WORKSHEETS_TABLE } = process.env;
 
 const createResponse = (statusCode, body = '', headers = {}) => {
   const CORS_HEADERS = {
@@ -18,7 +20,7 @@ const createResponse = (statusCode, body = '', headers = {}) => {
 
 module.exports.list = async () => {
   const scanOutput = await dynamoDb.scan({
-    TableName: process.env.WORKSHEETS_TABLE,
+    TableName: WORKSHEETS_TABLE,
     ProjectionExpression: 'id, sheetName',
   }).promise();
 
@@ -27,7 +29,7 @@ module.exports.list = async () => {
 
 module.exports.get = async event => {
   const result = await dynamoDb.get({
-    TableName: process.env.WORKSHEETS_TABLE,
+    TableName: WORKSHEETS_TABLE,
     Key: {
       id: event.pathParameters.id,
     },
@@ -41,9 +43,30 @@ module.exports.get = async event => {
 };
 
 module.exports.create = async event => {
-  return createResponse(200, JSON.stringify({ worksheet: result.Item }));
+  const requestBody = JSON.parse(event.body);
+  const now = Date.now();
+  const worksheetDetails = {
+    id: uuid.v1(),
+    sheetName: requestBody.sheetName,
+    contents: createEmptyWorksheet(10, 10),
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  await dynamoDb.put({
+    TableName: WORKSHEETS_TABLE,
+    Item: worksheetDetails,
+  }).promise();
+
+  return createResponse(200, JSON.stringify({ worksheet: worksheetDetails }));
 };
 
 module.exports.update = async event => {
   return createResponse(200, JSON.stringify({ worksheet: result.Item }));
 };
+
+function createEmptyWorksheet (rows, columns) {
+  const emptyArray = Array(columns).fill(null);
+
+  return Array(rows).fill(emptyArray);
+}

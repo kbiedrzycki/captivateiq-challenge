@@ -8,7 +8,10 @@
   },
   "author": "",
   "license": "ISC",
-  "dependencies": {
+  "devDependencies": {
     "aws-sdk": "^2.714.2"
+  },
+  "dependencies": {
+    "uuid": "^8.2.0"
   }
 }

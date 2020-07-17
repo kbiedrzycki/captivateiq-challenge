@@ -6,6 +6,22 @@ provider:
   stage: dev
   region: eu-west-1
 
+  environment:
+    WORKSHEETS_TABLE: ${opt:stage, self:provider.stage}-${self:service}-worksheets
+
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:DescribeTable
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource:
+        - "Fn::GetAtt": [ WorksheetsTable, Arn ]
+
 functions:
   listWorksheets:
     handler: api/worksheet.list
@@ -13,21 +29,39 @@ functions:
       - http:
           path: worksheets
           method: get
-    getWorksheet:
-      handler: api/worksheet.get
-      events:
-        - http:
-            path: worksheets/{id}
-            method: get
+          cors: true
+  getWorksheet:
+    handler: api/worksheet.get
+    events:
+      - http:
+          path: worksheets/{id}
+          method: get
+          cors: true
   createWorksheet:
     handler: api/worksheet.create
     events:
       - http:
           path: worksheets
           method: post
+          cors: true
   updateWorksheet:
     handler: api/worksheet.update
     events:
       - http:
           path: worksheets/{id}
           method: put
+          cors: true
+
+resources:
+  Resources:
+    WorksheetsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.WORKSHEETS_TABLE}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST

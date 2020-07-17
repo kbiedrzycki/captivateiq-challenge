@@ -131,12 +131,16 @@ function worksheetReducer(
 ): WorksheetState {
   switch (action.type) {
     case 'updateSheetContents':
+      if (!state.worksheet) {
+        return state;
+      }
+
       const { payload: { rowIndex, columnIndex, value } } = action;
-      const worksheetCopy = clone(state.worksheet) as Worksheet;
+      const worksheetContentsCopy = clone(state.worksheet.contents);
 
-      worksheetCopy.contents[rowIndex][columnIndex] = value;
+      worksheetContentsCopy[rowIndex][columnIndex] = value;
 
-      return { ...state, worksheet: worksheetCopy };
+      return { ...state, worksheet: { ...state.worksheet, contents: worksheetContentsCopy } };
     case 'initialize':
       return { ...state, worksheet: action.payload.worksheet };
   }

@@ -1,7 +1,8 @@
 import React from 'react';
 import OutsideClickHandler from 'react-outside-click-handler';
+import { useParams, Link } from 'react-router-dom';
 import './details.css';
-import { CellValue } from '../../api/worksheets';
+import { CellValue, get, Worksheet } from '../../api/worksheets';
 
 enum Keys {
   A = 65,
@@ -54,10 +55,7 @@ const displayValue = (rowIndex: number, columnIndex: number, worksheetContents: 
   return value;
 };
 
-type WorksheetState = {
-  name: string;
-  contents: (string | number)[][];
-};
+type WorksheetState = { worksheet?: Worksheet };
 
 type CellProps = {
   rowIndex: number;
@@ -125,45 +123,66 @@ const Cell = React.memo(({ rowIndex, columnIndex, value, displayValue, onChange 
   );
 });
 
-const initialWorksheetState: WorksheetState = {
-  name: 'Test',
-  contents: Array(10).fill(Array(10).fill(null)),
-};
-
 function worksheetReducer(
   state: WorksheetState,
-  action: { type: 'update'; payload: { rowIndex: number; columnIndex: number; value: CellValue } },
-) {
+  action:
+    | { type: 'updateSheetContents'; payload: { rowIndex: number; columnIndex: number; value: CellValue } }
+    | { type: 'initialize'; payload: { worksheet: Worksheet } },
+): WorksheetState {
   switch (action.type) {
-    case 'update':
+    case 'updateSheetContents':
       const { payload: { rowIndex, columnIndex, value } } = action;
-      const contentsCopy = clone(state.contents);
+      const worksheetCopy = clone(state.worksheet) as Worksheet;
 
-      contentsCopy[rowIndex][columnIndex] = value;
+      worksheetCopy.contents[rowIndex][columnIndex] = value;
 
-      return { ...state, contents: contentsCopy };
+      return { ...state, worksheet: worksheetCopy };
+    case 'initialize':
+      return { ...state, worksheet: action.payload.worksheet };
   }
 }
 
 export const Details = () => {
-  const [worksheetState, dispatch] = React.useReducer(worksheetReducer, initialWorksheetState);
-  const { name, contents: worksheetContents } = worksheetState;
-  const columnsCount = worksheetContents[0].length;
-  const columns = Array.from({ length: columnsCount });
-  const rowsCount = worksheetContents.length;
-  const rows = Array.from({ length: rowsCount });
+  const { id } = useParams<{ id: string }>();
+  const [worksheetState, dispatch] = React.useReducer(worksheetReducer, {});
+  const { worksheet } = worksheetState;
   const handleChange = React.useCallback((rowIndex: number, columnIndex: number, value: CellValue) => {
-    dispatch({ type: 'update', payload: { rowIndex, columnIndex, value } });
+    dispatch({ type: 'updateSheetContents', payload: { rowIndex, columnIndex, value } });
   }, [dispatch]);
+
+  React.useEffect(() => {
+    get(id).then((worksheet) => {
+      dispatch({ type: 'initialize', payload: { worksheet } });
+    });
+  }, [id]);
+
+  if (!worksheet) {
+    return (
+      <div className="text-center">
+        <div className="spinner-border mt-5" role="status">
+          <span className="sr-only">Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
+  const { contents: sheetContents, sheetName } = worksheet;
+  const columnsCount = sheetContents[0].length;
+  const columns = Array.from({ length: columnsCount });
+  const rowsCount = sheetContents.length;
+  const rows = Array.from({ length: rowsCount });
 
   return (
     <>
       <div className="row mt-2">
         <div className="col">
-          <h3>Worksheet: {name}</h3>
+          <h3>Worksheet: {sheetName}</h3>
+          <Link to="/worksheets">
+            &laquo; Go back to list
+          </Link>
         </div>
       </div>
-      <div className="row">
+      <div className="row mt-2">
         <table className="table worksheet">
           <thead>
           <tr>
@@ -184,7 +203,7 @@ export const Details = () => {
             <tr key={`row-${rowIndex}`}>
               <th scope="row" className="text-left">{rowIndex + 1}</th>
               {columns.map((_, columnIndex) => {
-                const value = worksheetContents[rowIndex][columnIndex];
+                const value = sheetContents[rowIndex][columnIndex];
 
                 return (
                   <Cell
@@ -192,7 +211,7 @@ export const Details = () => {
                     columnIndex={columnIndex}
                     rowIndex={rowIndex}
                     value={value}
-                    displayValue={displayValue(rowIndex, columnIndex, worksheetContents)}
+                    displayValue={displayValue(rowIndex, columnIndex, sheetContents)}
                     onChange={handleChange}
                   />
                 );

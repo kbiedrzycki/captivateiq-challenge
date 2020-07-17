@@ -27,3 +27,8 @@ export const list = () =>
   fetch(worksheetsUrl)
     .then((response) => response.json())
     .then<SimplifiedWorksheet[]>(({ worksheets }) => worksheets);
+
+export const get = (id: string) =>
+  fetch(`${worksheetsUrl}/${id}`)
+    .then((response) => response.json())
+    .then<Worksheet>(({ worksheet }) => worksheet);

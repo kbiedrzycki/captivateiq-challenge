@@ -10,10 +10,10 @@ ReactDOM.render(
     <BrowserRouter>
       <div className="container-fluid">
         <Switch>
-          <Route path="/details/:id" component={Details} />
-          <Route path="/list" component={List} />
+          <Route path="/worksheets/:id" component={Details} />
+          <Route path="/worksheets" component={List} />
           <Route path="*">
-            <Redirect to="/list" />
+            <Redirect to="/worksheets" />
           </Route>
         </Switch>
       </div>

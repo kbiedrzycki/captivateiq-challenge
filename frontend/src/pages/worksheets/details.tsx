@@ -105,7 +105,7 @@ const Cell = React.memo(({ rowIndex, columnIndex, value, displayValue, onChange 
       onBlur={handleChange}
       onKeyUp={handleKeyUp}
     />
-  ) : displayValue;
+  ) : displayValue !== null ? displayValue.toString() : '';
 
   React.useEffect(() => {
     if (editing) {
@@ -128,18 +128,7 @@ const Cell = React.memo(({ rowIndex, columnIndex, value, displayValue, onChange 
 
 const initialWorksheetState: WorksheetState = {
   name: 'Test',
-  contents: [
-    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-    [2, 3, 2, 3, 4, 5, 6, 7, 8, 9],
-    [3, 4, 2, 3, 4, 5, 6, 7, 8, 9],
-    [4, 5, 2, 3, 4, 5, 6, 7, 8, 9],
-    [5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
-    [6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-    [7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
-    [8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
-    [9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
-  ],
+  contents: Array(10).fill(Array(10).fill(null)),
 };
 
 function worksheetReducer(
@@ -170,7 +159,7 @@ export const Details = () => {
 
   return (
     <>
-      <div className="row">
+      <div className="row mt-2">
         <div className="col">
           <h3>Worksheet: {name}</h3>
         </div>

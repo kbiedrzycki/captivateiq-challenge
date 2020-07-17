@@ -1,6 +1,7 @@
 import React from 'react';
 import OutsideClickHandler from 'react-outside-click-handler';
 import './details.css';
+import { CellValue } from '../../api/worksheets';
 
 enum Keys {
   A = 65,
@@ -57,8 +58,6 @@ type WorksheetState = {
   name: string;
   contents: (string | number)[][];
 };
-
-type CellValue = string | number;
 
 type CellProps = {
   rowIndex: number;

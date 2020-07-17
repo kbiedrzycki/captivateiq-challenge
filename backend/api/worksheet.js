@@ -21,7 +21,7 @@ const createResponse = (statusCode, body = '', headers = {}) => {
 module.exports.list = async () => {
   const scanOutput = await dynamoDb.scan({
     TableName: WORKSHEETS_TABLE,
-    ProjectionExpression: 'id, sheetName',
+    ProjectionExpression: 'id, sheetName, createdAt, updatedAt',
   }).promise();
 
   return createResponse(200, JSON.stringify({ worksheets: scanOutput.Items }));

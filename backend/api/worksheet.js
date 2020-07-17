@@ -1,37 +1,49 @@
 'use strict';
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
+const AWS = require('aws-sdk');
+
+const dynamoDb = new AWS.DynamoDB.DocumentClient();
+
+const createResponse = (statusCode, body = '', headers = {}) => {
+  const CORS_HEADERS = {
+    'Access-Control-Allow-Origin': '*',
+  };
+
+  return {
+    statusCode,
+    body: body,
+    headers: { ...CORS_HEADERS, ...headers },
+  };
 };
 
-module.exports.list = async event => {
-  return {
-    statusCode: 200,
-    headers: { ...CORS_HEADERS },
-    body: JSON.stringify({ worksheets: [] }),
-  };
+module.exports.list = async () => {
+  const scanOutput = await dynamoDb.scan({
+    TableName: process.env.WORKSHEETS_TABLE,
+    ProjectionExpression: 'id, sheetName',
+  }).promise();
+
+  return createResponse(200, JSON.stringify({ worksheets: scanOutput.Items }));
 };
 
 module.exports.get = async event => {
-  return {
-    statusCode: 200,
-    headers: { ...CORS_HEADERS },
-    body: JSON.stringify({ worksheet: {} }),
-  };
+  const result = await dynamoDb.get({
+    TableName: process.env.WORKSHEETS_TABLE,
+    Key: {
+      id: event.pathParameters.id,
+    },
+  }).promise();
+
+  if (!result.Item) {
+    return createResponse(404);
+  }
+
+  return createResponse(200, JSON.stringify({ worksheet: result.Item }));
 };
 
 module.exports.create = async event => {
-  return {
-    statusCode: 200,
-    headers: { ...CORS_HEADERS },
-    body: JSON.stringify({ worksheet: {} }),
-  };
+  return createResponse(200, JSON.stringify({ worksheet: result.Item }));
 };
 
 module.exports.update = async event => {
-  return {
-    statusCode: 200,
-    headers: { ...CORS_HEADERS },
-    body: JSON.stringify({ worksheet: {} }),
-  };
+  return createResponse(200, JSON.stringify({ worksheet: result.Item }));
 };

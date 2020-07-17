@@ -1,5 +1,9 @@
 service: captivateiq
 
+package:
+  exclude:
+    - node_modules/**
+
 provider:
   name: aws
   runtime: nodejs12.x

@@ -3,8 +3,8 @@ service: captivateiq
 provider:
   name: aws
   runtime: nodejs12.x
-  stage: dev
   region: eu-west-1
+  stage: dev
 
   environment:
     WORKSHEETS_TABLE: ${opt:stage, self:provider.stage}-${self:service}-worksheets

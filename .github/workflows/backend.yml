@@ -1,0 +1,41 @@
+name: Deploy backend
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "backend/**"
+
+defaults:
+  run:
+    working-directory: backend
+
+env:
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@master
+      - name: Use defined node version
+        uses: actions/setup-node@v1
+        with:
+          node-version: '14.x'
+
+      - name: Read dependencies cache
+        uses: actions/cache@v1
+        env:
+          cache-name: node-modules-cache
+        with:
+          path: ~/.cache/yarn
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/yarn.lock') }}
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: deploy
+        run: npx serverless deploy

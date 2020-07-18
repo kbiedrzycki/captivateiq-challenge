@@ -22,7 +22,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build",
+    "build": "./build-project.sh",
     "test": "TZ=UTC react-scripts test --env=jest-environment-jsdom-sixteen"
   },
   "eslintConfig": {

@@ -1,0 +1,45 @@
+name: Deploy frontend
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "frontend/**"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use defined node version
+        uses: actions/setup-node@v1
+        with:
+          node-version: '14.x'
+
+      - name: Read dependencies cache
+        uses: actions/cache@v1
+        env:
+          cache-name: node-modules-cache
+        with:
+          path: ~/.cache/yarn
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/yarn.lock') }}
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build project
+        run: yarn build
+        env:
+          REACT_APP_API_BASE: https://cqb1m3npvc.execute-api.eu-west-1.amazonaws.com/dev
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-west-1
+
+      - name: Copy application bundle to S3
+        run: aws s3 sync ./dist/ s3://captivateiq-challenge

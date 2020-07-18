@@ -4,6 +4,12 @@ type WorksheetCreateDTO = {
   sheetName: string;
 };
 
+type WorksheetContentsUpdateDTO = {
+  rowIndex: number;
+  columnIndex: number;
+  value: CellValue;
+};
+
 export type CellValue = string | number;
 
 export type Worksheet = {
@@ -20,6 +26,11 @@ const worksheetsUrl = `${REACT_APP_API_BASE}/worksheets`;
 
 export const create = ({ sheetName }: WorksheetCreateDTO) =>
   fetch(worksheetsUrl, { method: 'post', body: JSON.stringify({ sheetName }) })
+    .then((response) => response.json())
+    .then<Worksheet>(({ worksheet }) => worksheet);
+
+export const updateContents = (id: string, payload: WorksheetContentsUpdateDTO) =>
+  fetch(`${worksheetsUrl}/${id}/contents`, { method: 'put', body: JSON.stringify(payload) })
     .then((response) => response.json())
     .then<Worksheet>(({ worksheet }) => worksheet);
 

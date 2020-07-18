@@ -61,8 +61,24 @@ module.exports.create = async event => {
   return createResponse(200, JSON.stringify({ worksheet: worksheetDetails }));
 };
 
-module.exports.update = async event => {
-  return createResponse(200, JSON.stringify({ worksheet: result.Item }));
+module.exports.updateContents = async event => {
+  const { id } = event.pathParameters;
+  const { rowIndex, columnIndex, value } = JSON.parse(event.body);
+
+  const data = await dynamoDb.update({
+    ReturnValues: 'ALL_NEW',
+    TableName: WORKSHEETS_TABLE,
+    Key: {
+      'id': id,
+    },
+    UpdateExpression: `set updatedAt = :updatedAt, contents[${rowIndex}][${columnIndex}] = :contents`,
+    ExpressionAttributeValues: {
+      ':updatedAt': Date.now(),
+      ':contents': value,
+    },
+  }).promise();
+
+  return createResponse(200, JSON.stringify({ worksheet: data.Attributes }));
 };
 
 function createEmptyWorksheet (rows, columns) {

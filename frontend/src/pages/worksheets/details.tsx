@@ -2,7 +2,7 @@ import React from 'react';
 import OutsideClickHandler from 'react-outside-click-handler';
 import { useParams, Link } from 'react-router-dom';
 import './details.css';
-import { CellValue, get, Worksheet } from '../../api/worksheets';
+import { CellValue, get, updateContents, Worksheet } from '../../api/worksheets';
 
 enum Keys {
   A = 65,
@@ -13,8 +13,6 @@ enum Keys {
 const ROW_INDEX_PATTERN = /[0-9]+/;
 const CELL_INDEX_PATTERN = /[A-Z]+/;
 const CELL_REFERENCE_PATTERN = /^[A-Z]+[0-9]+$/;
-
-const clone = (items: any) => items.map((item: any) => Array.isArray(item) ? clone(item) : item);
 
 // We could add some memoization here I guess
 const isLikeFormula = (value: CellValue): value is string => typeof value === 'string' && value.startsWith('=');
@@ -62,18 +60,19 @@ type CellProps = {
   columnIndex: number;
   value: CellValue;
   displayValue: CellValue;
-  onChange: (rowIndex: number, cellIndex: number, value: CellValue) => any
+  onChange: (rowIndex: number, cellIndex: number, value: CellValue) => Promise<any>
 }
 
 const Cell = React.memo(({ rowIndex, columnIndex, value, displayValue, onChange }: CellProps) => {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [editing, setEditing] = React.useState(false);
   const [active, setActive] = React.useState(false);
+  const [cellValue, setCellValue] = React.useState(value);
   const quitEditing = () => {
     setEditing(false);
     setActive(false);
   };
-  const handleChange = (event: React.FocusEvent<HTMLInputElement>) => {
+  const handleChange = async (event: React.FocusEvent<HTMLInputElement>) => {
     const { value } = event.target;
     let cellValue = isLikeFormula(value) ? value : parseFloat(value);
 
@@ -81,7 +80,8 @@ const Cell = React.memo(({ rowIndex, columnIndex, value, displayValue, onChange 
       cellValue = value;
     }
 
-    onChange(rowIndex, columnIndex, cellValue);
+    await onChange(rowIndex, columnIndex, cellValue);
+
     quitEditing();
   };
   const handleKeyUp = ({ keyCode }: React.KeyboardEvent<HTMLInputElement>) => {
@@ -98,7 +98,8 @@ const Cell = React.memo(({ rowIndex, columnIndex, value, displayValue, onChange 
     <input
       ref={inputRef}
       type="text"
-      defaultValue={value}
+      value={cellValue}
+      onChange={(event: React.ChangeEvent<HTMLInputElement>) => setCellValue(event.target.value)}
       onBlur={handleChange}
       onKeyUp={handleKeyUp}
     />
@@ -126,46 +127,41 @@ const Cell = React.memo(({ rowIndex, columnIndex, value, displayValue, onChange 
 function worksheetReducer(
   state: WorksheetState,
   action:
-    | { type: 'updateSheetContents'; payload: { rowIndex: number; columnIndex: number; value: CellValue } }
-    | { type: 'initialize'; payload: { worksheet: Worksheet } },
+    | { type: 'setWorksheet'; payload: Worksheet },
 ): WorksheetState {
   switch (action.type) {
-    case 'updateSheetContents':
-      if (!state.worksheet) {
-        return state;
-      }
-
-      const { payload: { rowIndex, columnIndex, value } } = action;
-      const worksheetContentsCopy = clone(state.worksheet.contents);
-
-      worksheetContentsCopy[rowIndex][columnIndex] = value;
-
-      return { ...state, worksheet: { ...state.worksheet, contents: worksheetContentsCopy } };
-    case 'initialize':
-      return { ...state, worksheet: action.payload.worksheet };
+    case 'setWorksheet':
+      return { ...state, worksheet: action.payload };
   }
 }
 
 export const Details = () => {
   const { id } = useParams<{ id: string }>();
   const [worksheetState, dispatch] = React.useReducer(worksheetReducer, {});
+  const [updating, setUpdating] = React.useState(false);
   const { worksheet } = worksheetState;
-  const handleChange = React.useCallback((rowIndex: number, columnIndex: number, value: CellValue) => {
-    dispatch({ type: 'updateSheetContents', payload: { rowIndex, columnIndex, value } });
-  }, [dispatch]);
+  const handleChange = React.useCallback(async (rowIndex: number, columnIndex: number, value: CellValue) => {
+    try {
+      setUpdating(true);
+
+      const worksheet = await updateContents(id, { rowIndex, columnIndex, value });
+
+      dispatch({ type: 'setWorksheet', payload: worksheet });
+    } finally {
+      setUpdating(false);
+    }
+  }, [dispatch, id]);
 
   React.useEffect(() => {
     get(id).then((worksheet) => {
-      dispatch({ type: 'initialize', payload: { worksheet } });
+      dispatch({ type: 'setWorksheet', payload: worksheet });
     });
   }, [id]);
 
   if (!worksheet) {
     return (
       <div className="text-center">
-        <div className="spinner-border mt-5" role="status">
-          <span className="sr-only">Loading...</span>
-        </div>
+        <div className="spinner-border mt-5" />
       </div>
     );
   }
@@ -186,7 +182,12 @@ export const Details = () => {
           </Link>
         </div>
       </div>
-      <div className="row mt-2">
+      <div className="row mt-2 position-relative">
+        {updating && (
+          <div className="updating">
+            <div className="spinner-border " />
+          </div>
+        )}
         <table className="table worksheet">
           <thead>
           <tr>
@@ -214,7 +215,7 @@ export const Details = () => {
                     key={`cell-${rowIndex}-${columnIndex}`}
                     columnIndex={columnIndex}
                     rowIndex={rowIndex}
-                    value={value}
+                    value={value || ''}
                     displayValue={displayValue(rowIndex, columnIndex, sheetContents)}
                     onChange={handleChange}
                   />

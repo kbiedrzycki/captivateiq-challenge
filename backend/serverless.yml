@@ -44,11 +44,11 @@ functions:
           path: worksheets
           method: post
           cors: true
-  updateWorksheet:
-    handler: api/worksheet.update
+  updateWorksheetContents:
+    handler: api/worksheet.updateContents
     events:
       - http:
-          path: worksheets/{id}
+          path: worksheets/{id}/contents
           method: put
           cors: true
 

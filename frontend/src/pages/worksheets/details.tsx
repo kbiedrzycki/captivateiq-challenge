@@ -102,6 +102,7 @@ const Cell = React.memo(({ rowIndex, columnIndex, value, displayValue, onChange 
       onChange={(event: React.ChangeEvent<HTMLInputElement>) => setCellValue(event.target.value)}
       onBlur={handleChange}
       onKeyUp={handleKeyUp}
+      data-testid={`input-${rowIndex}-${columnIndex}`}
     />
   ) : displayValue !== null ? displayValue.toString() : '';
 
@@ -113,6 +114,7 @@ const Cell = React.memo(({ rowIndex, columnIndex, value, displayValue, onChange 
 
   return (
     <td
+      data-testid={`cell-${rowIndex}-${columnIndex}`}
       className={`${active ? 'active' : ''}`}
       onClick={() => setActive(true)}
       onDoubleClick={() => setEditing(true)}
@@ -176,7 +178,7 @@ export const Details = () => {
     <>
       <div className="row mt-2">
         <div className="col">
-          <h3>Worksheet: {sheetName}</h3>
+          <h3>{sheetName}</h3>
           <Link to="/worksheets">
             &laquo; Go back to list
           </Link>
@@ -185,7 +187,9 @@ export const Details = () => {
       <div className="row mt-2 position-relative">
         {updating && (
           <div className="updating">
-            <div className="spinner-border " />
+            <div className="spinner-border">
+              <div className="sr-only">Updating...</div>
+            </div>
           </div>
         )}
         <table className="table worksheet">

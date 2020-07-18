@@ -7,6 +7,10 @@ on:
     paths:
       - "frontend/**"
 
+defaults:
+  run:
+    working-directory: frontend
+
 jobs:
   deploy:
     runs-on: ubuntu-latest

@@ -1,9 +1,8 @@
 'use strict';
 
-const AWS = require('aws-sdk');
+const { doc: dynamoDb } = require('serverless-dynamodb-client');
 const uuid = require('uuid');
 
-const dynamoDb = new AWS.DynamoDB.DocumentClient();
 const { WORKSHEETS_TABLE } = process.env;
 
 const createResponse = (statusCode, body = '', headers = {}) => {

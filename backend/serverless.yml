@@ -1,5 +1,22 @@
 service: captivateiq
 
+plugins:
+  - serverless-offline
+  - serverless-dynamodb-local
+
+package:
+  exclude:
+    - '.dynamodb/**'
+    - '.serverless/**'
+    - 'node_modules/**'
+    - '!node_modules/serverless-dynamodb-client/**'
+    - '!node_modules/uuid/**'
+
+custom:
+  dynamodb:
+    stages:
+      - dev
+
 provider:
   name: aws
   runtime: nodejs12.x
